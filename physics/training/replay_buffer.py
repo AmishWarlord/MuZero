@@ -5,9 +5,7 @@ from typing import List
 from physics.config import MuZeroConfig
 from physics.game import AbstractGame
 
-
 class ReplayBuffer(object):
-
     def __init__(self, config: MuZeroConfig):
         self.window_size = config.window_size
         self.batch_size = config.batch_size
@@ -18,20 +16,19 @@ class ReplayBuffer(object):
             self.buffer.pop(0)
         self.buffer.append(game)
 
-    def sample_batch(self, num_unroll_steps: int, td_steps: int):
-        # Generate some sample of data to train on
+    def sample_batch(self, num_unroll_steps:int, td_steps:int):
         games = self.sample_games()
         game_pos = [(g, self.sample_position(g)) for g in games]
         game_data = [(g.make_image(i), g.history[i:i + num_unroll_steps],
-                      g.make_target(i, num_unroll_steps, td_steps, g.to_play()))
-                     for (g, i) in game_pos]
+                 g.make_target(i, num_unroll_steps, td_steps, g.to_play()))
+                for (g, i) in game_pos]
 
-        # Pre-process the batch
+        # preprocess the batch
         image_batch, actions_time_batch, targets_batch = zip(*game_data)
         targets_init_batch, *targets_time_batch = zip(*targets_batch)
         actions_time_batch = list(zip_longest(*actions_time_batch, fillvalue=None))
 
-        # Building batch of valid actions and a dynamic mask for hidden representations during BPTT
+        # build batch of valid actions and a dynamic mask for hidden representations during BPTT
         mask_time_batch = []
         dynamic_mask_time_batch = []
         last_mask = [True] * len(image_batch)
@@ -43,13 +40,14 @@ class ReplayBuffer(object):
             last_mask = mask
             actions_time_batch[i] = [action.index for action in actions_batch if action]
 
-        batch = image_batch, targets_init_batch, targets_time_batch, actions_time_batch, mask_time_batch, dynamic_mask_time_batch
+        batch = image_batch, targets_init_batch, targets_time_batch, actions_time_batch, mask_time_batch, \
+                mask_time_batch, dynamic_mask_time_batch
         return batch
 
     def sample_games(self) -> List[AbstractGame]:
-        # Sample game from buffer either uniformly or according to some priority.
-        return random.choices(self.buffer, k=self.batch_size)
+        # sample game from buffer either uniformly or according to some priority
+        return random.sample(self.buffer, k=self.batch_size)
 
     def sample_position(self, game: AbstractGame) -> int:
-        # Sample position from game either uniformly or according to some priority.
-        return random.randint(0, len(game.history))
+        # sample position from game either uniformly or according to some priority
+        return random.randint(0,len(game.history))

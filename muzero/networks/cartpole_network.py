@@ -5,8 +5,8 @@ from tensorflow.keras import regularizers
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.models import Sequential
 
-from game.game import Action
-from networks.network import BaseNetwork
+from physics.game import Action
+from physics.networks import BaseNetwork
 
 
 class CartPoleNetwork(BaseNetwork):

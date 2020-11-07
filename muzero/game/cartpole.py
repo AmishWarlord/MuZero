@@ -2,8 +2,8 @@ from typing import List
 
 import gym
 
-from game.game import Action, AbstractGame
-from game.gym_wrappers import ScalingObservationWrapper
+from physics.game import Action, AbstractGame
+from physics.game import ScalingObservationWrapper
 
 
 class CartPole(AbstractGame):

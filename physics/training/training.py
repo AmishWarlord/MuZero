@@ -1,5 +1,3 @@
-"""Training module: this is where MuZero neurons are trained."""
-
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.losses import MSE
@@ -9,15 +7,15 @@ from physics.networks import BaseNetwork
 from physics.networks import SharedStorage
 from physics.training import ReplayBuffer
 
-
 def train_network(config: MuZeroConfig, storage: SharedStorage, replay_buffer: ReplayBuffer, epochs: int):
     network = storage.current_network
+    optimizer = storage.current_network
     optimizer = storage.optimizer
 
     for _ in range(epochs):
         batch = replay_buffer.sample_batch(config.num_unroll_steps, config.td_steps)
         update_weights(optimizer, network, batch)
-        storage.save_network(network.training_steps, network)
+        storage.save_network(network.get_training_steps(), network)
 
 
 def update_weights(optimizer: tf.keras.optimizers, network: BaseNetwork, batch):
@@ -26,10 +24,12 @@ def update_weights(optimizer: tf.keras.optimizers, network: BaseNetwork, batch):
         return (1. - scale) * tf.stop_gradient(tensor) + scale * tensor
 
     def loss():
-        loss = 0
-        image_batch, targets_init_batch, targets_time_batch, actions_time_batch, mask_time_batch, dynamic_mask_time_batch = batch
 
-        # Initial step, from the real observation: representation + prediction networks
+        loss = 0
+        image_batch, targets_init_batch, targets_time_batch, actions_time_batch, \
+        mask_time_batch, dynamic_mask_time_batch = batch
+
+        # make initial step from the real observation: representation + prediction networks
         representation_batch, value_batch, policy_batch = network.initial_model(np.array(image_batch))
 
         # Only update the element with a policy target
@@ -39,7 +39,8 @@ def update_weights(optimizer: tf.keras.optimizers, network: BaseNetwork, batch):
         policy_batch = tf.boolean_mask(policy_batch, mask_policy)
 
         # Compute the loss of the first pass
-        loss += tf.math.reduce_mean(loss_value(target_value_batch, value_batch, network.value_support_size))
+        value_support_size = len(value_batch[0])
+        loss += tf.math.reduce_mean(loss_value(target_value_batch, value_batch, value_support_size))
         loss += tf.math.reduce_mean(
             tf.nn.softmax_cross_entropy_with_logits(logits=policy_batch, labels=target_policy_batch))
 
